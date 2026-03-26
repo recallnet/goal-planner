@@ -1,0 +1,5 @@
+{
+  "name": "goal-planner",
+  "description": "Plan and file goals and feature issues through conversation. Works with any repo that uses GitHub issues for work tracking.",
+  "version": "0.1.0"
+}

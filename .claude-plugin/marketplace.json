@@ -11,7 +11,7 @@
       "name": "goal-planner",
       "description": "Plan and file goals and feature issues through conversation",
       "category": "development",
-      "source": ".",
+      "source": "./plugins/goal-planner",
       "homepage": "https://github.com/recallnet/goal-planner"
     }
   ]
