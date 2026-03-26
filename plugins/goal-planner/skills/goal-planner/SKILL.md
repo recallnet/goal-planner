@@ -1,32 +1,92 @@
 ---
 name: goal-planner
-description: Plan and file goals and feature issues through conversation. Use when the user wants to create goals, plan features, file issues, or discuss what to build next. Handles goal decomposition into features, multi-goal ordering, and ready-label confirmation.
+description: Plan and file goals and feature issues through conversation. Use when the user wants to create goals, plan features, file issues, or discuss what to build next.
 ---
 
 # Goal Planner
 
-You help users plan work and file it as well-formed GitHub issues for execution.
+Help users think clearly about what they want, then file it as well-scoped
+GitHub issues.
 
-## Setup
+## Your job
 
-Determine the target repo. Check in order:
+You are a thinking partner, not an issue factory. Your job is to help the user
+clarify what they want — the outcome, not the implementation — and file it so
+that someone (or something) else can figure out how to build it.
 
-1. If a `factory.config.json` exists (or `factories/*/factory.config.json`), read `target_repo` and `control_plane_repo` from it.
-2. Otherwise, use the current repo from `gh repo view --json nameWithOwner --jq .nameWithOwner`.
+Goals describe outcomes. Features describe work. These are different steps that
+happen at different times. Do not collapse them.
 
-If a factory config exists with a `control_plane_repo` different from `target_repo`, the user may want to file factory-change issues on the control plane. Ask if the work is for the target codebase or the factory itself.
+## How to think about goals
 
-## Conversation Flow
+A goal is an outcome the user wants. It answers: "what should be true when
+this is done, and why does it matter?"
 
-### 1. Understand what the user wants
+A goal is NOT:
+- A technical spec
+- A list of files to change
+- An implementation plan
+- A solution to a problem (it's the problem + desired outcome)
 
-Listen. Ask clarifying questions. Understand the problem before proposing a solution. Read relevant code if needed to understand feasibility and scope.
+When the user starts describing how to build something, pull them back to what
+they want to be true. "What would success look like?" is always a better
+question than "what files need to change?"
 
-### 2. Draft the goal issue
+**Write goals that a smart person encountering the codebase for the first time
+could decompose into features after reading the code.** If a goal requires
+deep context to even understand what it's asking for, it's too coupled to a
+specific solution. If it requires knowing the implementation to verify success,
+the success criteria are wrong.
 
-A goal is a high-level intent. It describes *what* and *why*, never *how*.
+A goal should be small enough that all its features can be built together on
+one branch and merged as a set. If you find yourself writing a goal that would
+take 10+ features, break it into a chain of smaller goals.
 
-**Goal format:**
+## How to think about scope
+
+If the work is large, break it into multiple goals with `blocked_by`
+relationships. Each goal should have a clear, independently verifiable outcome.
+Goal 1 fully ships, then goal 2 starts. This is better than one mega-goal
+because:
+
+- Each goal can be decomposed just-in-time with current codebase context
+- The first goal's changes are landed before the second goal's features are written
+- The decomposer works with reality, not a plan that's already stale
+
+## When to write features
+
+**Default: don't.** Goals get decomposed into features later by an agent that
+reads the goal, reads the codebase, and writes features with full context. That
+agent produces better specs than you can right now because it has the code in
+front of it at decomposition time.
+
+Only write features yourself when:
+- The user explicitly asks to decompose now
+- The work is so well-understood that waiting would waste time
+- The user has specific technical knowledge they want captured now
+
+Even then, don't write features until the goal is approved. Finish the goal
+first. Get sign-off. Then decompose if the user wants to.
+
+## Filing issues
+
+### Determine the target repo
+
+1. Check for `factory.config.json` (or `factories/*/factory.config.json`) — read `target_repo`
+2. If no factory config, use `gh repo view --json nameWithOwner --jq .nameWithOwner`
+
+If the user describes a change to the factory itself (prompts, graphs, capabilities,
+gates) rather than the target codebase, file on `control_plane_repo` with label
+`factory:<factory_id>`.
+
+### Before filing, check for duplicates
+
+```bash
+gh issue list --repo <repo> --label goal --state open --json number,title --jq '.[] | "#\(.number) \(.title)"'
+```
+
+### Goal format
+
 ```markdown
 ## Goal Statement
 
@@ -44,29 +104,19 @@ A goal is a high-level intent. It describes *what* and *why*, never *how*.
 **Out:** {What's explicitly excluded}
 ```
 
-**Goal rules:**
-- No implementation specs. Ever. The goal says what, not how.
-- No code snippets, file paths, or technical approach in the goal body.
-- Success criteria are observable outcomes, not implementation tasks.
-- Label: `goal`. Do NOT add `ready` yet.
+Label: `goal`. Never `ready` — that comes later after the user confirms.
 
-Present the draft to the user. Iterate until they approve.
+### Feature format (only when decomposing)
 
-### 3. Optionally decompose into feature issues
-
-If the conversation makes it clear what features need to be built, offer to create feature sub-issues. Only do this if the user agrees — some goals are better left for later decomposition.
-
-**Feature format:**
 ```markdown
 ## Parent Goal
 #<goal-number>
 
 ## What
-{Clear description of this specific feature. What it does, where it fits.}
+{What this feature does and where it fits.}
 
 ## Spec
-{Technical specification. File paths, function signatures, contracts, wiring.
-Be specific — this is what a coding agent will implement.}
+{Technical specification. Be specific — a coding agent will implement this.}
 
 ## Acceptance
 - [ ] {Testable criterion 1}
@@ -76,30 +126,25 @@ Be specific — this is what a coding agent will implement.}
 {What failing test to write first.}
 ```
 
-**Feature rules:**
-- Each feature should be roughly one commit of work.
-- Features DO contain specs, acceptance criteria, and TDD requirements.
-- Label: `feature`. Do NOT add `ready` yet.
-- All features in a goal will be built together on one worktree, then merged as a set.
-- After creating each feature issue, add it as a sub-issue of the goal using the REST API:
-  ```bash
-  # Get the feature's numeric ID (not node_id)
-  child_id=$(gh api repos/<repo>/issues/<feature_number> --jq '.id')
-  # Add as sub-issue of the goal
-  gh api -X POST repos/<repo>/issues/<goal_number>/sub_issues -F sub_issue_id=$child_id
-  ```
-  This is the REST sub-issues API. The `sub_issue_id` field requires the issue's numeric `.id` from the REST API (not `.node_id`).
+Label: `feature`. Each feature is roughly one commit of work.
 
-### 4. Handle multi-goal ordering
+### Linking sub-issues to goals
 
-If the work is too large for one goal, break it into multiple goals. Use the GraphQL `addBlockedBy` mutation to enforce ordering:
+After creating each feature, link it as a sub-issue of the goal:
 
 ```bash
-# Get node IDs for both goals
+child_id=$(gh api repos/<repo>/issues/<feature_number> --jq '.id')
+gh api -X POST repos/<repo>/issues/<goal_number>/sub_issues -F sub_issue_id=$child_id
+```
+
+The `sub_issue_id` requires the numeric `.id` from the REST API, not `.node_id`.
+
+### Ordering goals with blocked-by
+
+```bash
 goal1_node_id=$(gh api repos/<repo>/issues/<goal1_number> --jq '.node_id')
 goal2_node_id=$(gh api repos/<repo>/issues/<goal2_number> --jq '.node_id')
 
-# Make goal 2 blocked by goal 1
 gh api graphql -f query='
   mutation($issueId: ID!, $blockingIssueId: ID!) {
     addBlockedBy(input: {issueId: $issueId, blockingIssueId: $blockingIssueId}) {
@@ -108,57 +153,16 @@ gh api graphql -f query='
   }' -f issueId="$goal2_node_id" -f blockingIssueId="$goal1_node_id"
 ```
 
-This uses `addBlockedBy` (not `addIssueDependency` which does not exist). The `issueId` is the issue that IS blocked, `blockingIssueId` is the issue that blocks it. Both must be GraphQL node IDs (`.node_id`), not numeric IDs.
+`issueId` = the blocked issue. `blockingIssueId` = the blocker. Both are `.node_id`.
 
-Tell the user: "Goal 1 will fully complete before Goal 2 starts."
+### Ready gate
 
-### 5. Confirm and label ready
+After all issues are created, show the user what you filed. Nothing builds
+until the user explicitly confirms. When they say "ready", "go", "ship it",
+or equivalent:
 
-After all issues are created, present the full plan:
-
-```
-Here's what I've created:
-
-Goal: #<number> — <title>
-  Feature: #<number> — <title>
-  Feature: #<number> — <title>
-  Feature: #<number> — <title>
-
-Nothing will build until you confirm. Say "ready" to label everything
-and start execution, or tell me what to change.
-```
-
-**Only label `ready` after explicit user confirmation.** The user must say "ready", "go", "ship it", "looks good, do it", or something unambiguously affirmative.
-
-When confirmed:
 ```bash
 gh issue edit <number> --repo <repo> --add-label "ready"
 ```
 
-Apply to the goal and all its features at once.
-
-### 6. Check for duplicates first
-
-Before creating any goal, check existing open goals:
-```bash
-gh issue list --repo <repo> --label goal --state open --json number,title --jq '.[] | "#\(.number) \(.title)"'
-```
-
-## What NOT to do
-
-- Do not label `ready` without explicit user confirmation.
-- Do not put implementation details in goal issues.
-- Do not create features without user agreement to decompose.
-- Do not guess the target repo — detect it from config or git remote.
-- Do not create circular blocked-by relationships.
-- Do not file duplicate goals.
-
-## Factory-aware routing
-
-When a factory config exists with `control_plane_repo` different from `target_repo`, and the user describes a factory problem (bad prompts, missing capabilities, broken gates):
-
-- File on `control_plane_repo` instead of `target_repo`
-- Add label `factory:<factory_id>` alongside `goal`
-- The goal statement should describe the factory behavior change
-
-This routing only activates when the factory config is present. In a plain repo, everything files on the current repo.
+Label the goal and all its features at once.
