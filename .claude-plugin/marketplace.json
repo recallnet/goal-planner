@@ -1,17 +1,18 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "recallnet-goal-planner",
+  "description": "Goal planning plugins for Claude Code",
   "owner": {
     "name": "Recall Labs",
-    "url": "https://github.com/recallnet"
+    "email": "dev@recall.network"
   },
   "plugins": [
     {
       "name": "goal-planner",
       "description": "Plan and file goals and feature issues through conversation",
-      "source": {
-        "type": "local",
-        "path": "."
-      }
+      "category": "development",
+      "source": ".",
+      "homepage": "https://github.com/recallnet/goal-planner"
     }
   ]
 }
