@@ -81,22 +81,34 @@ Be specific — this is what a coding agent will implement.}
 - Features DO contain specs, acceptance criteria, and TDD requirements.
 - Label: `feature`. Do NOT add `ready` yet.
 - All features in a goal will be built together on one worktree, then merged as a set.
-- Set parent relationship:
+- After creating each feature issue, add it as a sub-issue of the goal using the REST API:
   ```bash
+  # Get the feature's numeric ID (not node_id)
   child_id=$(gh api repos/<repo>/issues/<feature_number> --jq '.id')
+  # Add as sub-issue of the goal
   gh api -X POST repos/<repo>/issues/<goal_number>/sub_issues -F sub_issue_id=$child_id
   ```
+  This is the REST sub-issues API. The `sub_issue_id` field requires the issue's numeric `.id` from the REST API (not `.node_id`).
 
 ### 4. Handle multi-goal ordering
 
-If the work is too large for one goal, break it into multiple goals. Use GitHub issue dependencies to enforce ordering:
+If the work is too large for one goal, break it into multiple goals. Use the GraphQL `addBlockedBy` mutation to enforce ordering:
 
 ```bash
+# Get node IDs for both goals
+goal1_node_id=$(gh api repos/<repo>/issues/<goal1_number> --jq '.node_id')
+goal2_node_id=$(gh api repos/<repo>/issues/<goal2_number> --jq '.node_id')
+
 # Make goal 2 blocked by goal 1
-goal1_id=$(gh api repos/<repo>/issues/<goal1_number> --jq '.node_id')
-goal2_id=$(gh api repos/<repo>/issues/<goal2_number> --jq '.node_id')
-gh api graphql -f query="mutation { addIssueDependency(input: {issueId: \"$goal2_id\", dependsOnIssueId: \"$goal1_id\"}) { issue { id } } }"
+gh api graphql -f query='
+  mutation($issueId: ID!, $blockingIssueId: ID!) {
+    addBlockedBy(input: {issueId: $issueId, blockingIssueId: $blockingIssueId}) {
+      blockedByIssue { number title }
+    }
+  }' -f issueId="$goal2_node_id" -f blockingIssueId="$goal1_node_id"
 ```
+
+This uses `addBlockedBy` (not `addIssueDependency` which does not exist). The `issueId` is the issue that IS blocked, `blockingIssueId` is the issue that blocks it. Both must be GraphQL node IDs (`.node_id`), not numeric IDs.
 
 Tell the user: "Goal 1 will fully complete before Goal 2 starts."
 
