@@ -18,6 +18,7 @@ jobs:
       contents: write
       id-token: write
       packages: write
+      issues: write
 
     steps:
       - uses: actions/checkout@v4
@@ -26,9 +27,7 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 10
+      - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -106,3 +105,9 @@ jobs:
           else
             gh release create "$tag" --target HEAD --title "${name}@${version}" --notes "$body"
           fi
+
+      - name: Open ticket on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/scripts/ci-failure-ticket.sh "publish-packages" "${{ github.run_id }}"
