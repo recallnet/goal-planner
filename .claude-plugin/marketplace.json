@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    {
+      "name": "goal-planner",
+      "description": "Plan and file goals and feature issues through conversation",
+      "source": "."
+    }
+  ]
+}
