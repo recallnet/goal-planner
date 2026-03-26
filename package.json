@@ -9,7 +9,7 @@
   },
   "files": [
     ".claude-plugin",
-    "skills",
+    "plugins",
     "README.md"
   ],
   "scripts": {

@@ -14,7 +14,8 @@ Claude Code plugin for planning and filing goals and feature issues through conv
 ## Install
 
 ```bash
-claude plugin install recallnet/goal-planner
+claude plugin marketplace add recallnet/goal-planner
+claude plugin install goal-planner
 ```
 
 Then use `/goal-planner` in any Claude Code session.
