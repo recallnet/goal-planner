@@ -1,9 +1,17 @@
 {
+  "name": "recallnet-goal-planner",
+  "owner": {
+    "name": "Recall Labs",
+    "url": "https://github.com/recallnet"
+  },
   "plugins": [
     {
       "name": "goal-planner",
       "description": "Plan and file goals and feature issues through conversation",
-      "source": "."
+      "source": {
+        "type": "local",
+        "path": "."
+      }
     }
   ]
 }
