@@ -1,0 +1,23 @@
+{
+  "name": "@recallnet/claude-goal-planner",
+  "version": "0.1.0",
+  "description": "Claude Code plugin for planning and filing goals and feature issues through conversation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/recallnet/goal-planner"
+  },
+  "files": [
+    ".claude-plugin",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "changeset": "changeset",
+    "version": "changeset version",
+    "publish": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.0"
+  }
+}
