@@ -36,3 +36,22 @@ Published as `@recallnet/claude-goal-planner` on npmjs for version tracking and 
 ## License
 
 MIT
+
+## Publishing Skills
+
+This repo uses `gh skill publish` (GitHub CLI v2.90.0+) to publish skills.
+
+**Prerequisite:** Ensure GitHub CLI v2.90.0+ is installed: `gh --version`
+
+**When modifying skills:**
+1. Make changes to skill files in `skills/`
+2. Commit and merge to main
+3. Run `gh skill publish --tag vX.Y.Z` to create a release
+4. The `agent-skills` topic will be added automatically
+
+**Installing the skill:**
+```bash
+gh skill install recallnet/goal-planner goal-planner --agent codex
+```
+
+See: https://cli.github.com/manual/gh_skill_publish
