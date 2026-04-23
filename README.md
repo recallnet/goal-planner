@@ -51,7 +51,22 @@ This repo uses `gh skill publish` (GitHub CLI v2.90.0+) to publish skills.
 
 **Installing the skill:**
 ```bash
+# Install the skill
 gh skill install recallnet/goal-planner goal-planner --agent codex
+
+# Commit it to your repo
+git add .agents/skills/goal-planner
+git commit -m "chore: add goal-planner skill"
+```
+
+**Updating skills:**
+```bash
+# Update all installed skills
+gh skill update --all
+
+# Commit the changes
+git add .agents/skills/
+git commit -m "chore: update skills"
 ```
 
 See: https://cli.github.com/manual/gh_skill_publish
